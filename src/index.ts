@@ -69,6 +69,8 @@ export { createGauge } from './charts/Gauge';
 export type { GaugeOptions, GaugeInstance } from './charts/Gauge';
 export { createRadarChart } from './charts/RadarChart';
 export type { RadarAxis, RadarSeries, RadarAnimationConfig, RadarChartOptions, RadarChartInstance } from './charts/RadarChart';
+export { createAreaChart } from './charts/AreaChart';
+export type { AreaDataPoint, AreaSeriesConfig, AreaAnimationConfig, AreaChartOptions, AreaChartInstance } from './charts/AreaChart';
 
 // Theme
 export type { ChartTheme } from './theme';

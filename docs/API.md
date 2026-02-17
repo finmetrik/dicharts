@@ -1347,6 +1347,184 @@ const radar = createRadarChart(el, {
 
 ---
 
+### `createAreaChart(container, options)`
+
+Feature-complete area chart supporting smooth/linear/step curves, single or multi-series with filled areas, stacked and stacked-expanded (100%) modes, gradient fills, data-point dots, grid lines, axis labels, auto-generated legend, interactive hover with tooltips, and entry animations.
+
+```ts
+import { createAreaChart } from 'dicharts';
+
+const area = createAreaChart(el, {
+  data: [
+    { label: 'Jan', value: 186 },
+    { label: 'Feb', value: 305 },
+    { label: 'Mar', value: 237 },
+    { label: 'Apr', value: 73 },
+    { label: 'May', value: 209 },
+    { label: 'Jun', value: 214 },
+  ],
+  curveType: 'smooth',
+  fillOpacity: 0.3,
+  animation: { duration: 800, easing: 'easeOut', style: 'draw' },
+});
+
+area.dispose();
+```
+
+#### Area Chart — Multi-Series
+
+```ts
+const area = createAreaChart(el, {
+  labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+  series: [
+    { name: 'Desktop', data: [186, 305, 237, 173, 209, 214], color: '#2962ff' },
+    { name: 'Mobile', data: [80, 200, 120, 190, 130, 140], color: '#26a69a' },
+  ],
+  showLegend: true,
+  fillOpacity: 0.2,
+  animation: { duration: 800, easing: 'easeOut', style: 'draw' },
+});
+```
+
+#### Area Chart — Stacked
+
+```ts
+const area = createAreaChart(el, {
+  labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+  series: [
+    { name: 'Desktop', data: [186, 305, 237, 173, 209, 214], color: '#2962ff' },
+    { name: 'Mobile', data: [80, 200, 120, 190, 130, 140], color: '#26a69a' },
+  ],
+  stacked: true,
+  showLegend: true,
+});
+```
+
+#### Area Chart — Stacked Expanded (100%)
+
+```ts
+const area = createAreaChart(el, {
+  labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+  series: [
+    { name: 'Desktop', data: [186, 305, 237, 173, 209, 214] },
+    { name: 'Mobile', data: [80, 200, 120, 190, 130, 140] },
+    { name: 'Tablet', data: [40, 55, 70, 45, 60, 50] },
+  ],
+  stacked: true,
+  stackedExpanded: true,
+  showLegend: true,
+});
+```
+
+#### Area Chart — Gradient Fill
+
+```ts
+const area = createAreaChart(el, {
+  data: items,
+  gradient: true,
+  fillOpacity: 0.5,
+  colors: ['#A78BFA'],
+});
+```
+
+#### Area Chart — Step Curve
+
+```ts
+const area = createAreaChart(el, {
+  data: items,
+  curveType: 'step',
+  fillOpacity: 0.25,
+});
+```
+
+#### Area Chart — With Dots
+
+```ts
+const area = createAreaChart(el, {
+  data: items,
+  showDots: true,
+  dotRadius: 5,
+  gradient: true,
+});
+```
+
+#### Area Chart — Interactive (Hover + Tooltip)
+
+```ts
+const area = createAreaChart(el, {
+  labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+  series: [
+    { name: 'Downloads', data: [1200, 2100, 1800, 3200, 2400, 2900], color: '#2962ff' },
+    { name: 'Uploads', data: [400, 700, 600, 1100, 900, 1050], color: '#FFD700' },
+  ],
+  interactive: true,
+  showTooltip: true,
+  showDots: true,
+  gradient: true,
+  showLegend: true,
+});
+```
+
+#### Area Chart — Transparent Background
+
+```ts
+const area = createAreaChart(el, {
+  data: items,
+  background: 'transparent', // inherits parent bg (ideal for shadcn/themed cards)
+});
+```
+
+#### AreaChartOptions
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `data` | `AreaDataPoint[]` | `[]` | Simple single-series data |
+| `series` | `AreaSeriesConfig[]` | `[]` | Multi-series data. Each series has a `name`, `data: number[]`, optional `color` and `fillOpacity`. |
+| `labels` | `string[]` | `[]` | X-axis labels (required when using `series` mode) |
+| `curveType` | `string` | `'smooth'` | `'smooth'` (bezier) / `'linear'` / `'step'` |
+| `stacked` | `boolean` | `false` | Stack series on top of each other |
+| `stackedExpanded` | `boolean` | `false` | Normalize stacked values to 100% |
+| `fillOpacity` | `number` | `0.3` | Default fill opacity for the area |
+| `gradient` | `boolean` | `false` | Vertical gradient fill (colour → transparent) |
+| `lineWidth` | `number` | `2` | Stroke line width in CSS px |
+| `showDots` | `boolean` | `false` | Show data-point dots on the curve |
+| `dotRadius` | `number` | `4` | Dot radius in CSS px |
+| `showXAxis` | `boolean` | `true` | Show X-axis labels |
+| `showYAxis` | `boolean` | `true` | Show Y-axis labels |
+| `showGrid` | `boolean` | `true` | Show horizontal grid lines |
+| `showLegend` | `boolean` | `true` | Show auto-generated legend (multi-series) |
+| `showTooltip` | `boolean` | `true` | Show tooltip on hover |
+| `interactive` | `boolean` | `true` | Enable hover highlighting |
+| `formatValue` | `(v: number) => string` | auto | Custom value formatter |
+| `colors` | `string[]` | built-in palette | Colour cycle for series |
+| `background` | `string` | `'transparent'` | Inherits parent by default. Set a hex value to override. |
+| `textColor` | `string` | auto | Text colour (auto-detects light/dark) |
+| `gridColor` | `string` | auto | Grid line colour (auto-detects light/dark) |
+| `animation` | `boolean \| AreaAnimationConfig` | `false` | Entry animation config |
+| `onClick` | `(label, index) => void` | — | Click callback |
+| `onHover` | `(label \| null, index) => void` | — | Hover callback |
+
+#### AreaAnimationConfig
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `duration` | `number` | `800` | Animation duration in ms |
+| `easing` | `string` | `'easeOut'` | `'linear'` / `'easeOut'` / `'easeInOut'` / `'spring'` |
+| `style` | `string` | `'draw'` | `'draw'` (progressive reveal) / `'fade'` / `'grow'` (rise from baseline) / `'none'` |
+
+#### AreaChartInstance Methods
+
+| Method | Description |
+|--------|-------------|
+| `setData(data)` | Replace single-series data and re-render |
+| `setSeries(series)` | Replace multi-series data and re-render |
+| `setOptions(opts)` | Merge partial options and re-render |
+| `redraw()` | Force redraw |
+| `resize()` | Recalculate canvas dimensions and redraw |
+| `dispose()` | Remove canvas, tooltip, and event listeners |
+
+---
+
 ### `createGauge(container, options)`
 
 Semi-circle gauge meter for displaying a value within a range.
