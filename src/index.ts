@@ -56,17 +56,17 @@ export type { IchimokuResult } from './indicators/ichimoku';
 
 // Standalone chart components
 export { createDepthChart } from './charts/DepthChart';
-export type { DepthLevel, DepthChartOptions, DepthChartInstance } from './charts/DepthChart';
+export type { DepthLevel, DepthChartOptions, DepthAnimationConfig, DepthChartInstance } from './charts/DepthChart';
 export { createHeatmap } from './charts/Heatmap';
-export type { HeatmapItem, HeatmapOptions, HeatmapInstance } from './charts/Heatmap';
+export type { HeatmapItem, HeatmapOptions, HeatmapAnimationConfig, HeatmapInstance } from './charts/Heatmap';
 export { createSparkline } from './charts/Sparkline';
-export type { SparklineOptions, SparklineInstance } from './charts/Sparkline';
+export type { SparklineOptions, SparklineAnimationConfig, SparklineInstance } from './charts/Sparkline';
 export { createDonutChart, createDonutChart as createPieChart } from './charts/DonutChart';
 export type { DonutSlice, DonutAnimationConfig, CenterTextConfig, DonutChartOptions, DonutChartInstance } from './charts/DonutChart';
 export { createBarChart } from './charts/BarChart';
 export type { BarDataPoint, BarSeriesDataPoint, BarAnimationConfig, BarChartOptions, BarChartInstance } from './charts/BarChart';
 export { createGauge } from './charts/Gauge';
-export type { GaugeOptions, GaugeInstance } from './charts/Gauge';
+export type { GaugeSegment, GaugeOptions, GaugeAnimationConfig, GaugeInstance } from './charts/Gauge';
 export { createRadarChart } from './charts/RadarChart';
 export type { RadarAxis, RadarSeries, RadarAnimationConfig, RadarChartOptions, RadarChartInstance } from './charts/RadarChart';
 export { createAreaChart } from './charts/AreaChart';
