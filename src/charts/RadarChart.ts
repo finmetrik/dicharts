@@ -15,6 +15,12 @@
 //   • Transparent / inherit background
 // ---------------------------------------------------------------------------
 
+import {
+  PALETTE, EASINGS, isLightBg, resolveAnim, createTooltip,
+  applyTipTheme, formatValue as defaultFormatValue,
+} from './utils';
+import type { ResolvedAnim } from './utils';
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 /** Defines one axis (spoke) of the radar chart. */
@@ -107,39 +113,6 @@ export interface RadarChartInstance {
   dispose(): void;
 }
 
-// ── Constants & helpers ───────────────────────────────────────────────────────
-
-const PALETTE = [
-  '#2962ff', '#26a69a', '#ef5350', '#FFD700', '#A78BFA',
-  '#F472B6', '#4ECDC4', '#FF6B6B', '#38bdf8', '#fb923c',
-  '#a3e635', '#e879f9',
-];
-
-const EASINGS: Record<string, (t: number) => number> = {
-  linear: (t) => t,
-  easeOut: (t) => 1 - Math.pow(1 - t, 3),
-  easeInOut: (t) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2,
-  spring: (t) => 1 - Math.exp(-6 * t) * Math.cos(6.5 * t),
-};
-
-interface ResolvedAnim {
-  enabled: boolean;
-  duration: number;
-  easing: (t: number) => number;
-  style: string;
-}
-
-function resolveAnim(raw?: boolean | RadarAnimationConfig): ResolvedAnim {
-  if (!raw) return { enabled: false, duration: 0, easing: EASINGS.linear, style: 'none' };
-  const cfg = raw === true ? {} : raw;
-  return {
-    enabled: (cfg.style ?? 'grow') !== 'none',
-    duration: cfg.duration ?? 800,
-    easing: EASINGS[cfg.easing ?? 'easeOut'] ?? EASINGS.easeOut,
-    style: cfg.style ?? 'grow',
-  };
-}
-
 // ── Main factory ──────────────────────────────────────────────────────────────
 
 export function createRadarChart(
@@ -156,22 +129,11 @@ export function createRadarChart(
 
   // ---- Resolved state ----
   let background = options.background ?? 'transparent';
-  let isLightBg = isLightBackground(background, container);
+  let _isLight = isLightBg(background, container);
 
   // ---- Tooltip ----
   const tip = document.createElement('div');
-  function applyTipTheme(light: boolean) {
-    tip.style.cssText = [
-      'position:absolute;pointer-events:none;z-index:10',
-      'padding:6px 10px;border-radius:8px',
-      'font:500 12px/1.5 system-ui,-apple-system,sans-serif',
-      light
-        ? 'background:rgba(255,255,255,.96);color:#1e293b;box-shadow:0 4px 12px rgba(0,0,0,.12);border:1px solid rgba(0,0,0,0.08)'
-        : 'background:rgba(15,23,42,.92);color:#e2e8f0;box-shadow:0 4px 12px rgba(0,0,0,.25)',
-      'opacity:0;transition:opacity 150ms ease;white-space:nowrap',
-    ].join(';');
-  }
-  applyTipTheme(isLightBg);
+  applyTipTheme(tip, _isLight);
   container.appendChild(tip);
   let axes: RadarAxis[] = options.axes ?? [];
   let series: RadarSeries[] = options.series ?? [];
@@ -191,8 +153,8 @@ export function createRadarChart(
   let showLegend = options.showLegend ?? true;
   let showTooltip = options.showTooltip ?? false;
   let interactive = options.interactive ?? false;
-  let textColor = options.textColor ?? (isLightBg ? '#1e293b' : '#e6edf3');
-  let gridColor = options.gridColor ?? (isLightBg ? 'rgba(0,0,0,0.18)' : 'rgba(255,255,255,0.12)');
+  let textColor = options.textColor ?? (_isLight ? '#1e293b' : '#e6edf3');
+  let gridColor = options.gridColor ?? (_isLight ? 'rgba(0,0,0,0.18)' : 'rgba(255,255,255,0.12)');
   let colors = options.colors ?? PALETTE;
   let anim: ResolvedAnim = resolveAnim(options.animation);
   let onClick: RadarChartOptions['onClick'] = options.onClick ?? (() => {});
@@ -219,10 +181,10 @@ export function createRadarChart(
     if (o.interactive !== undefined) interactive = o.interactive;
     if (o.background !== undefined) {
       background = o.background;
-      isLightBg = isLightBackground(background, container);
-      applyTipTheme(isLightBg);
-      if (o.textColor === undefined) textColor = isLightBg ? '#1e293b' : '#e6edf3';
-      if (o.gridColor === undefined) gridColor = isLightBg ? 'rgba(0,0,0,0.18)' : 'rgba(255,255,255,0.12)';
+      _isLight = isLightBg(background, container);
+      applyTipTheme(tip, _isLight);
+      if (o.textColor === undefined) textColor = _isLight ? '#1e293b' : '#e6edf3';
+      if (o.gridColor === undefined) gridColor = _isLight ? 'rgba(0,0,0,0.18)' : 'rgba(255,255,255,0.12)';
     }
     if (o.textColor !== undefined) textColor = o.textColor;
     if (o.gridColor !== undefined) gridColor = o.gridColor;
@@ -482,7 +444,7 @@ export function createRadarChart(
         const rOuter = r;
         const rInner = (radius * (level - 1) / gridLevels) * prog;
         ctx.fillStyle = gridColor;
-        ctx.globalAlpha = isLightBg ? 0.7 : 0.5;
+        ctx.globalAlpha = _isLight ? 0.7 : 0.5;
 
         if (gridType === 'circle') {
           ctx.beginPath();
@@ -513,8 +475,8 @@ export function createRadarChart(
 
       // Grid ring outline
       ctx.strokeStyle = gridColor;
-      ctx.lineWidth = dpr * (isLightBg ? 0.8 : 0.5);
-      ctx.globalAlpha = isLightBg ? 1 : 0.6;
+      ctx.lineWidth = dpr * (_isLight ? 0.8 : 0.5);
+      ctx.globalAlpha = _isLight ? 1 : 0.6;
 
       if (gridType === 'circle') {
         ctx.beginPath();
@@ -536,8 +498,8 @@ export function createRadarChart(
 
     // Spokes
     ctx.strokeStyle = gridColor;
-    ctx.lineWidth = dpr * (isLightBg ? 0.8 : 0.5);
-    ctx.globalAlpha = isLightBg ? 0.8 : 0.4;
+    ctx.lineWidth = dpr * (_isLight ? 0.8 : 0.5);
+    ctx.globalAlpha = _isLight ? 0.8 : 0.4;
     const spokeR = radius * prog;
     for (let i = 0; i < n; i++) {
       const a = angleFor(i, n);
@@ -613,7 +575,7 @@ export function createRadarChart(
 
         // Ring on hover (adapts to background)
         if (isDotHovered) {
-          ctx.strokeStyle = isLightBg ? '#fff' : '#fff';
+          ctx.strokeStyle = _isLight ? '#fff' : '#fff';
           ctx.lineWidth = 2 * dpr;
           ctx.stroke();
         }
@@ -627,7 +589,7 @@ export function createRadarChart(
   function drawAxisLabels(ctx: CanvasRenderingContext2D, n: number) {
     const labelR = radius + 14 * dpr;
     ctx.fillStyle = textColor;
-    ctx.globalAlpha = isLightBg ? 0.9 : 0.75;
+    ctx.globalAlpha = _isLight ? 0.9 : 0.75;
     const fontSize = Math.max(9 * dpr, Math.min(11 * dpr, radius * 0.1));
     ctx.font = `${fontSize}px sans-serif`;
 
@@ -668,7 +630,7 @@ export function createRadarChart(
     const fontSize = Math.max(8 * dpr, radius * 0.07);
     ctx.font = `${fontSize}px sans-serif`;
     ctx.fillStyle = textColor;
-    ctx.globalAlpha = isLightBg ? 0.65 : 0.45;
+    ctx.globalAlpha = _isLight ? 0.65 : 0.45;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'bottom';
 
@@ -749,49 +711,4 @@ export function createRadarChart(
       tip.remove();
     },
   };
-}
-
-// ── Utility ───────────────────────────────────────────────────────────────────
-
-function defaultFormatValue(v: number): string {
-  if (Math.abs(v) >= 1e6) return `${(v / 1e6).toFixed(1)}M`;
-  if (Math.abs(v) >= 1e3) return `${(v / 1e3).toFixed(1)}K`;
-  return v % 1 === 0 ? `${v}` : v.toFixed(1);
-}
-
-function isLightBackground(bg: string, el?: HTMLElement): boolean {
-  if (bg === 'transparent' && el) {
-    let node: HTMLElement | null = el;
-    while (node) {
-      const cs = getComputedStyle(node);
-      const c = cs.backgroundColor;
-      if (c && c !== 'transparent' && c !== 'rgba(0, 0, 0, 0)') {
-        return parseLuminance(c);
-      }
-      node = node.parentElement;
-    }
-    return false;
-  }
-  return hexLuminance(bg);
-}
-
-function hexLuminance(bg: string): boolean {
-  if (bg.startsWith('#')) {
-    const hex = bg.replace('#', '');
-    const r = parseInt(hex.substring(0, 2), 16) || 0;
-    const g = parseInt(hex.substring(2, 4), 16) || 0;
-    const b = parseInt(hex.substring(4, 6), 16) || 0;
-    return (r * 299 + g * 587 + b * 114) / 1000 > 150;
-  }
-  return false;
-}
-
-function parseLuminance(color: string): boolean {
-  if (color.startsWith('#')) return hexLuminance(color);
-  const m = color.match(/rgba?\(\s*(\d+),\s*(\d+),\s*(\d+)/);
-  if (m) {
-    const r = +m[1], g = +m[2], b = +m[3];
-    return (r * 299 + g * 587 + b * 114) / 1000 > 150;
-  }
-  return false;
 }

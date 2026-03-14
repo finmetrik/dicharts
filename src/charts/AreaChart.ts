@@ -14,6 +14,13 @@
 //   • Transparent / inherit background for themed containers
 // ---------------------------------------------------------------------------
 
+import {
+  PALETTE, EASINGS, isLightBg, resolveAnim as _resolveAnim,
+  applyTipTheme, formatValue as defaultFormatValue,
+  colorWithAlpha, themeTextColor, themeGridColor,
+} from './utils';
+import type { ResolvedAnim } from './utils';
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 export interface AreaDataPoint {
@@ -102,36 +109,8 @@ export interface AreaChartInstance {
 
 // ── Constants & helpers ───────────────────────────────────────────────────────
 
-const PALETTE = [
-  '#2962ff', '#26a69a', '#ef5350', '#FFD700', '#A78BFA',
-  '#F472B6', '#4ECDC4', '#FF6B6B', '#38bdf8', '#fb923c',
-  '#a3e635', '#e879f9',
-];
-
-const EASINGS: Record<string, (t: number) => number> = {
-  linear: (t) => t,
-  easeOut: (t) => 1 - Math.pow(1 - t, 3),
-  easeInOut: (t) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2,
-  spring: (t) => 1 - Math.exp(-6 * t) * Math.cos(6.5 * t),
-};
-
-interface ResolvedAnim {
-  enabled: boolean;
-  duration: number;
-  easing: (t: number) => number;
-  style: string;
-}
-
 function resolveAnim(a?: boolean | AreaAnimationConfig): ResolvedAnim {
-  if (a === false || a === undefined) return { enabled: false, duration: 0, easing: EASINGS.linear, style: 'none' };
-  if (a === true) return { enabled: true, duration: 800, easing: EASINGS.easeOut, style: 'draw' };
-  const style = a.style ?? 'draw';
-  return {
-    enabled: style !== 'none',
-    duration: a.duration ?? 800,
-    easing: EASINGS[a.easing ?? 'easeOut'] ?? EASINGS.easeOut,
-    style,
-  };
+  return _resolveAnim(a, 'draw');
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
@@ -154,18 +133,7 @@ export function createAreaChart(
 
   // ---- Tooltip ----
   const tip = document.createElement('div');
-  function applyTipTheme(light: boolean) {
-    tip.style.cssText = [
-      'position:absolute;pointer-events:none;z-index:10',
-      'padding:6px 10px;border-radius:8px',
-      'font:500 12px/1.5 system-ui,-apple-system,sans-serif',
-      light
-        ? 'background:rgba(255,255,255,.96);color:#1e293b;box-shadow:0 4px 12px rgba(0,0,0,.12);border:1px solid rgba(0,0,0,0.08)'
-        : 'background:rgba(15,23,42,.92);color:#e2e8f0;box-shadow:0 4px 12px rgba(0,0,0,.25)',
-      'opacity:0;transition:opacity 150ms ease;white-space:nowrap',
-    ].join(';');
-  }
-  applyTipTheme(_isLight);
+  applyTipTheme(tip, _isLight);
   container.appendChild(tip);
 
   let data: AreaDataPoint[] = options.data ?? [];
@@ -187,8 +155,8 @@ export function createAreaChart(
   let interactive = options.interactive ?? true;
   let fmtVal = options.formatValue ?? defaultFormatValue;
   let colors = options.colors ?? PALETTE;
-  let textColor = options.textColor ?? (_isLight ? '#1e293b' : '#e6edf3');
-  let gridColor = options.gridColor ?? (_isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.06)');
+  let textColor = options.textColor ?? themeTextColor(_isLight);
+  let gridColor = options.gridColor ?? themeGridColor(_isLight);
   let anim: ResolvedAnim = resolveAnim(options.animation);
   let onClick: AreaChartOptions['onClick'] = options.onClick ?? (() => {});
   let onHover: AreaChartOptions['onHover'] = options.onHover ?? (() => {});
@@ -216,9 +184,9 @@ export function createAreaChart(
     if (o.background !== undefined) {
       background = o.background;
       _isLight = isLightBg(background, container);
-      applyTipTheme(_isLight);
-      if (o.textColor === undefined) textColor = _isLight ? '#1e293b' : '#e6edf3';
-      if (o.gridColor === undefined) gridColor = _isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.06)';
+      applyTipTheme(tip, _isLight);
+      if (o.textColor === undefined) textColor = themeTextColor(_isLight);
+      if (o.gridColor === undefined) gridColor = themeGridColor(_isLight);
     }
     if (o.textColor !== undefined) textColor = o.textColor;
     if (o.gridColor !== undefined) gridColor = o.gridColor;
@@ -740,57 +708,3 @@ export function createAreaChart(
   };
 }
 
-// ── Utility ───────────────────────────────────────────────────────────────────
-
-function defaultFormatValue(v: number): string {
-  if (Math.abs(v) >= 1e6) return `${(v / 1e6).toFixed(1)}M`;
-  if (Math.abs(v) >= 1e3) return `${(v / 1e3).toFixed(1)}K`;
-  return v % 1 === 0 ? `${v}` : v.toFixed(1);
-}
-
-function colorWithAlpha(hex: string, alpha: number): string {
-  if (hex.startsWith('#')) {
-    const r = parseInt(hex.slice(1, 3), 16);
-    const g = parseInt(hex.slice(3, 5), 16);
-    const b = parseInt(hex.slice(5, 7), 16);
-    return `rgba(${r},${g},${b},${alpha})`;
-  }
-  return hex;
-}
-
-function isLightBg(bg: string, el?: HTMLElement): boolean {
-  if (bg === 'transparent' && el) {
-    let node: HTMLElement | null = el;
-    while (node) {
-      const cs = getComputedStyle(node);
-      const c = cs.backgroundColor;
-      if (c && c !== 'transparent' && c !== 'rgba(0, 0, 0, 0)') {
-        return parseLuminance(c);
-      }
-      node = node.parentElement;
-    }
-    return false;
-  }
-  return hexLuminance(bg);
-}
-
-function hexLuminance(bg: string): boolean {
-  if (bg.startsWith('#')) {
-    const hex = bg.replace('#', '');
-    const r = parseInt(hex.substring(0, 2), 16) || 0;
-    const g = parseInt(hex.substring(2, 4), 16) || 0;
-    const b = parseInt(hex.substring(4, 6), 16) || 0;
-    return (r * 299 + g * 587 + b * 114) / 1000 > 150;
-  }
-  return false;
-}
-
-function parseLuminance(color: string): boolean {
-  if (color.startsWith('#')) return hexLuminance(color);
-  const m = color.match(/rgba?\(\s*(\d+),\s*(\d+),\s*(\d+)/);
-  if (m) {
-    const r = +m[1], g = +m[2], b = +m[3];
-    return (r * 299 + g * 587 + b * 114) / 1000 > 150;
-  }
-  return false;
-}

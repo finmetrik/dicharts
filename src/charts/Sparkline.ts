@@ -1,3 +1,5 @@
+import { ease } from './utils';
+
 export interface SparklineAnimationConfig {
   duration?: number;
   easing?: 'linear' | 'easeOut' | 'easeInOut';
@@ -20,12 +22,6 @@ export interface SparklineInstance {
   redraw(): void;
   resize(): void;
   dispose(): void;
-}
-
-function ease(t: number, type: string): number {
-  if (type === 'easeOut') return 1 - Math.pow(1 - t, 3);
-  if (type === 'easeInOut') return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-  return t;
 }
 
 export function createSparkline(container: HTMLElement, options: SparklineOptions = {}): SparklineInstance {

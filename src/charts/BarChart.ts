@@ -13,6 +13,12 @@
 //   • Negative value support with zero-line
 // ---------------------------------------------------------------------------
 
+import {
+  PALETTE, EASINGS, isLightBg, resolveAnim, applyTipTheme,
+  formatNum, themeTextColor, themeGridColor,
+} from './utils';
+import type { ResolvedAnim } from './utils';
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 /** Single-value data point (simple mode). */
@@ -112,19 +118,6 @@ export interface BarChartInstance {
 
 // ── Constants & helpers ───────────────────────────────────────────────────────
 
-const PALETTE = [
-  '#2962ff', '#26a69a', '#ef5350', '#FFD700', '#A78BFA',
-  '#F472B6', '#4ECDC4', '#FF6B6B', '#38bdf8', '#fb923c',
-  '#a3e635', '#e879f9',
-];
-
-const EASINGS: Record<string, (t: number) => number> = {
-  linear: (t) => t,
-  easeOut: (t) => 1 - Math.pow(1 - t, 3),
-  easeInOut: (t) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2,
-  spring: (t) => 1 - Math.exp(-6 * t) * Math.cos(6.5 * t),
-};
-
 interface HitRect {
   x: number; y: number; w: number; h: number;
   catIdx: number;
@@ -133,26 +126,6 @@ interface HitRect {
   value: number;
   color: string;
   seriesKey: string;
-}
-
-interface ResolvedAnim {
-  enabled: boolean;
-  duration: number;
-  easing: (t: number) => number;
-  delay: number;
-  style: string;
-}
-
-function resolveAnim(raw?: boolean | BarAnimationConfig): ResolvedAnim {
-  if (!raw) return { enabled: false, duration: 0, easing: EASINGS.linear, delay: 0, style: 'none' };
-  const cfg = raw === true ? {} : raw;
-  return {
-    enabled: (cfg.style ?? 'grow') !== 'none',
-    duration: cfg.duration ?? 600,
-    easing: EASINGS[cfg.easing ?? 'easeOut'] ?? EASINGS.easeOut,
-    delay: cfg.delay ?? 30,
-    style: cfg.style ?? 'grow',
-  };
 }
 
 // ── Main factory ──────────────────────────────────────────────────────────────
@@ -171,17 +144,6 @@ export function createBarChart(
 
   // ---- Tooltip ----
   const tip = document.createElement('div');
-  function applyTipTheme(light: boolean) {
-    tip.style.cssText = [
-      'position:absolute;pointer-events:none;z-index:10',
-      'padding:6px 10px;border-radius:8px',
-      'font:500 12px/1.5 system-ui,-apple-system,sans-serif',
-      light
-        ? 'background:rgba(255,255,255,.96);color:#1e293b;box-shadow:0 4px 12px rgba(0,0,0,.12);border:1px solid rgba(0,0,0,0.08)'
-        : 'background:rgba(15,23,42,.92);color:#e2e8f0;box-shadow:0 4px 12px rgba(0,0,0,.25)',
-      'opacity:0;transition:opacity 150ms ease;white-space:nowrap',
-    ].join(';');
-  }
   container.appendChild(tip);
 
   // ---- Resolved state ----
@@ -197,9 +159,9 @@ export function createBarChart(
   let barColor = options.barColor ?? '#2962ff';
   let background = options.background ?? 'transparent';
   let _isLight = isLightBg(background, container);
-  let textColor = options.textColor ?? (_isLight ? '#1e293b' : '#e6edf3');
-  let gridColor = options.gridColor ?? (_isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.06)');
-  applyTipTheme(_isLight);
+  let textColor = options.textColor ?? themeTextColor(_isLight);
+  let gridColor = options.gridColor ?? themeGridColor(_isLight);
+  applyTipTheme(tip, _isLight);
   let gap = options.gap ?? 0.3;
   let borderRadius = options.borderRadius ?? 3;
   let showValues = options.showValues ?? true;
@@ -227,9 +189,9 @@ export function createBarChart(
     if (o.background !== undefined) {
       background = o.background;
       _isLight = isLightBg(background, container);
-      applyTipTheme(_isLight);
-      if (o.textColor === undefined) textColor = _isLight ? '#1e293b' : '#e6edf3';
-      if (o.gridColor === undefined) gridColor = _isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.06)';
+      applyTipTheme(tip, _isLight);
+      if (o.textColor === undefined) textColor = themeTextColor(_isLight);
+      if (o.gridColor === undefined) gridColor = themeGridColor(_isLight);
     }
     if (o.textColor !== undefined) textColor = o.textColor;
     if (o.gridColor !== undefined) gridColor = o.gridColor;
@@ -1111,50 +1073,4 @@ export function createBarChart(
       tip.remove();
     },
   };
-}
-
-// ── Utility ───────────────────────────────────────────────────────────────────
-
-function formatNum(v: number): string {
-  if (Math.abs(v) >= 1e9) return `${(v / 1e9).toFixed(1)}B`;
-  if (Math.abs(v) >= 1e6) return `${(v / 1e6).toFixed(1)}M`;
-  if (Math.abs(v) >= 1e3) return `${(v / 1e3).toFixed(1)}K`;
-  return v.toFixed(v % 1 === 0 ? 0 : 2);
-}
-
-function isLightBg(bg: string, el?: HTMLElement): boolean {
-  if (bg === 'transparent' && el) {
-    let node: HTMLElement | null = el;
-    while (node) {
-      const cs = getComputedStyle(node);
-      const c = cs.backgroundColor;
-      if (c && c !== 'transparent' && c !== 'rgba(0, 0, 0, 0)') {
-        return parseLuminance(c);
-      }
-      node = node.parentElement;
-    }
-    return false;
-  }
-  return hexLuminance(bg);
-}
-
-function hexLuminance(bg: string): boolean {
-  if (bg.startsWith('#')) {
-    const hex = bg.replace('#', '');
-    const r = parseInt(hex.substring(0, 2), 16) || 0;
-    const g = parseInt(hex.substring(2, 4), 16) || 0;
-    const b = parseInt(hex.substring(4, 6), 16) || 0;
-    return (r * 299 + g * 587 + b * 114) / 1000 > 150;
-  }
-  return false;
-}
-
-function parseLuminance(color: string): boolean {
-  if (color.startsWith('#')) return hexLuminance(color);
-  const m = color.match(/rgba?\(\s*(\d+),\s*(\d+),\s*(\d+)/);
-  if (m) {
-    const r = +m[1], g = +m[2], b = +m[3];
-    return (r * 299 + g * 587 + b * 114) / 1000 > 150;
-  }
-  return false;
 }

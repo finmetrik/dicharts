@@ -14,6 +14,12 @@
 //   • Transparent / inherit background
 // ---------------------------------------------------------------------------
 
+import {
+  PALETTE, EASINGS, isLightBg, resolveAnim as _resolveAnim,
+  applyTipTheme, themeTextColor,
+} from './utils';
+import type { ResolvedAnim } from './utils';
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 export interface DonutSlice {
@@ -96,37 +102,8 @@ export interface DonutChartInstance {
 
 // ── Constants & helpers ───────────────────────────────────────────────────────
 
-const PALETTE = [
-  '#2962ff', '#26a69a', '#ef5350', '#FFD700', '#A78BFA',
-  '#F472B6', '#4ECDC4', '#FF6B6B', '#38bdf8', '#fb923c',
-  '#a3e635', '#e879f9',
-];
-
-const EASINGS: Record<string, (t: number) => number> = {
-  linear: (t) => t,
-  easeOut: (t) => 1 - Math.pow(1 - t, 3),
-  easeInOut: (t) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2,
-  spring: (t) => 1 - Math.exp(-6 * t) * Math.cos(6.5 * t),
-};
-
-interface ResolvedAnim {
-  enabled: boolean;
-  duration: number;
-  easing: (t: number) => number;
-  delay: number;
-  style: string;
-}
-
 function resolveAnim(raw?: boolean | DonutAnimationConfig): ResolvedAnim {
-  if (!raw) return { enabled: false, duration: 0, easing: EASINGS.linear, delay: 0, style: 'none' };
-  const cfg = raw === true ? {} : raw;
-  return {
-    enabled: (cfg.style ?? 'sweep') !== 'none',
-    duration: cfg.duration ?? 800,
-    easing: EASINGS[cfg.easing ?? 'easeOut'] ?? EASINGS.easeOut,
-    delay: cfg.delay ?? 0,
-    style: cfg.style ?? 'sweep',
-  };
+  return _resolveAnim(raw, 'sweep');
 }
 
 // ── Main factory ──────────────────────────────────────────────────────────────
@@ -145,17 +122,6 @@ export function createDonutChart(
 
   // ---- Tooltip ----
   const tip = document.createElement('div');
-  function applyTipTheme(light: boolean) {
-    tip.style.cssText = [
-      'position:absolute;pointer-events:none;z-index:10',
-      'padding:6px 10px;border-radius:8px',
-      'font:500 12px/1.5 system-ui,-apple-system,sans-serif',
-      light
-        ? 'background:rgba(255,255,255,.96);color:#1e293b;box-shadow:0 4px 12px rgba(0,0,0,.12);border:1px solid rgba(0,0,0,0.08)'
-        : 'background:rgba(15,23,42,.92);color:#e2e8f0;box-shadow:0 4px 12px rgba(0,0,0,.25)',
-      'opacity:0;transition:opacity 150ms ease;white-space:nowrap',
-    ].join(';');
-  }
   container.appendChild(tip);
 
   // ---- Resolved state ----
@@ -165,8 +131,8 @@ export function createDonutChart(
   let colors = options.colors ?? PALETTE;
   let background = options.background ?? 'transparent';
   let _isLight = isLightBg(background, container);
-  let textColor = options.textColor ?? (_isLight ? '#1e293b' : '#e6edf3');
-  applyTipTheme(_isLight);
+  let textColor = options.textColor ?? themeTextColor(_isLight);
+  applyTipTheme(tip, _isLight);
   let labelType: string = options.labelType ?? (options.showLabels === false ? 'none' : 'percentage');
   let labelPosition: string = options.labelPosition ?? 'inside';
   let showLabelLines = options.showLabelLines ?? (labelPosition === 'outside');
@@ -189,8 +155,8 @@ export function createDonutChart(
     if (o.background !== undefined) {
       background = o.background;
       _isLight = isLightBg(background, container);
-      applyTipTheme(_isLight);
-      if (o.textColor === undefined) textColor = _isLight ? '#1e293b' : '#e6edf3';
+      applyTipTheme(tip, _isLight);
+      if (o.textColor === undefined) textColor = themeTextColor(_isLight);
     }
     if (o.textColor !== undefined) textColor = o.textColor;
     if (o.labelType !== undefined) labelType = o.labelType;
@@ -801,41 +767,4 @@ function defaultFormatValue(v: number): string {
   if (v >= 1e6) return `$${(v / 1e6).toFixed(1)}M`;
   if (v >= 1e3) return `$${(v / 1e3).toFixed(1)}K`;
   return v % 1 === 0 ? `${v}` : `${v.toFixed(2)}`;
-}
-
-function isLightBg(bg: string, el?: HTMLElement): boolean {
-  if (bg === 'transparent' && el) {
-    let node: HTMLElement | null = el;
-    while (node) {
-      const cs = getComputedStyle(node);
-      const c = cs.backgroundColor;
-      if (c && c !== 'transparent' && c !== 'rgba(0, 0, 0, 0)') {
-        return parseLuminance(c);
-      }
-      node = node.parentElement;
-    }
-    return false;
-  }
-  return hexLuminance(bg);
-}
-
-function hexLuminance(bg: string): boolean {
-  if (bg.startsWith('#')) {
-    const hex = bg.replace('#', '');
-    const r = parseInt(hex.substring(0, 2), 16) || 0;
-    const g = parseInt(hex.substring(2, 4), 16) || 0;
-    const b = parseInt(hex.substring(4, 6), 16) || 0;
-    return (r * 299 + g * 587 + b * 114) / 1000 > 150;
-  }
-  return false;
-}
-
-function parseLuminance(color: string): boolean {
-  if (color.startsWith('#')) return hexLuminance(color);
-  const m = color.match(/rgba?\(\s*(\d+),\s*(\d+),\s*(\d+)/);
-  if (m) {
-    const r = +m[1], g = +m[2], b = +m[3];
-    return (r * 299 + g * 587 + b * 114) / 1000 > 150;
-  }
-  return false;
 }

@@ -1,3 +1,5 @@
+import { isLightBg, ease } from './utils';
+
 export interface DepthLevel {
   price: number;
   quantity: number;
@@ -29,49 +31,6 @@ export interface DepthChartInstance {
   redraw(): void;
   resize(): void;
   dispose(): void;
-}
-
-function hexLuminance(bg: string): boolean {
-  if (bg.startsWith('#')) {
-    const hex = bg.replace('#', '');
-    const r = parseInt(hex.substring(0, 2), 16) || 0;
-    const g = parseInt(hex.substring(2, 4), 16) || 0;
-    const b = parseInt(hex.substring(4, 6), 16) || 0;
-    return (r * 299 + g * 587 + b * 114) / 1000 > 150;
-  }
-  return false;
-}
-
-function parseLuminance(color: string): boolean {
-  if (color.startsWith('#')) return hexLuminance(color);
-  const m = color.match(/rgba?\(\s*(\d+),\s*(\d+),\s*(\d+)/);
-  if (m) {
-    const r = +m[1], g = +m[2], b = +m[3];
-    return (r * 299 + g * 587 + b * 114) / 1000 > 150;
-  }
-  return false;
-}
-
-function isLightBg(bg: string, el?: HTMLElement): boolean {
-  if (bg === 'transparent' && el) {
-    let node: HTMLElement | null = el;
-    while (node) {
-      const cs = getComputedStyle(node);
-      const c = cs.backgroundColor;
-      if (c && c !== 'transparent' && c !== 'rgba(0, 0, 0, 0)') {
-        return parseLuminance(c);
-      }
-      node = node.parentElement;
-    }
-    return false;
-  }
-  return hexLuminance(bg);
-}
-
-function ease(t: number, type: string): number {
-  if (type === 'easeOut') return 1 - Math.pow(1 - t, 3);
-  if (type === 'easeInOut') return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-  return t;
 }
 
 export function createDepthChart(container: HTMLElement, options: DepthChartOptions = {}): DepthChartInstance {
