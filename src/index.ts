@@ -75,6 +75,16 @@ export { createBookmap } from './charts/BookmapChart';
 export type { BookmapLevel, BookmapSnapshot, BookmapTrade, BookmapOptions, BookmapInstance } from './charts/BookmapChart';
 export { createOrderFlow } from './charts/OrderFlowChart';
 export type { OFLevel, OFSnapshot, OFTrade, OrderFlowOptions, OrderFlowInstance } from './charts/OrderFlowChart';
+export { createLiquidationChart } from './charts/LiquidationChart';
+export type { LiquidationLevel, LiquidationSnapshot, LiquidationChartOptions, LiquidationChartInstance } from './charts/LiquidationChart';
+export { createDarkPool } from './charts/DarkPoolChart';
+export type { DarkPoolPrint, DarkPoolOptions, DarkPoolInstance } from './charts/DarkPoolChart';
+export { createGexChart } from './charts/GexChart';
+export type { GexStrike, GexData, GexChartOptions, GexChartInstance } from './charts/GexChart';
+export { createMarketProfile } from './charts/MarketProfileChart';
+export type { TPOPeriod, MarketProfileData, MarketProfileOptions, MarketProfileInstance } from './charts/MarketProfileChart';
+export { createCumulativeDelta } from './charts/CumulativeDeltaChart';
+export type { DeltaTick, AbsorptionEvent, CumulativeDeltaOptions, CumulativeDeltaInstance } from './charts/CumulativeDeltaChart';
 
 // Theme
 export type { ChartTheme } from './theme';
