@@ -73,6 +73,8 @@ export { createAreaChart } from './charts/AreaChart';
 export type { AreaDataPoint, AreaSeriesConfig, AreaAnimationConfig, AreaChartOptions, AreaChartInstance } from './charts/AreaChart';
 export { createBookmap } from './charts/BookmapChart';
 export type { BookmapLevel, BookmapSnapshot, BookmapTrade, BookmapOptions, BookmapInstance } from './charts/BookmapChart';
+export { createOrderFlow } from './charts/OrderFlowChart';
+export type { OFLevel, OFSnapshot, OFTrade, OrderFlowOptions, OrderFlowInstance } from './charts/OrderFlowChart';
 
 // Theme
 export type { ChartTheme } from './theme';
